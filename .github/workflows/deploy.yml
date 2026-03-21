@@ -1,4 +1,4 @@
-name: Deploy ZgzPls After Docker Build
+name: Deploy
 
 on:
     workflow_run:
