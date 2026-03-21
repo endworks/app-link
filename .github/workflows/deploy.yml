@@ -46,9 +46,6 @@ jobs:
                   USERNAME: op://end.works/end.works/username
                   KEY: op://end.works/SSH Key/private key
                   FINGERPRINT: op://end.works/SSH Key/fingerprint
-                  APP_STORE_APP_ID: op://end.works/ZgzPls/app id
-                  PLAY_STORE_PACKAGE_NAME: op://end.works/ZgzPls/package name
-                  CONTAINER_NAME: op://end.works/ZgzPls/container name
 
             - name: Run container on host
               uses: appleboy/ssh-action@v1.0.3
@@ -61,7 +58,7 @@ jobs:
                       docker pull ghcr.io/${{ github.repository }}:${{ env.TAG }}
                       docker stop ${{ env.CONTAINER_NAME }}
                       docker rm ${{ env.CONTAINER_NAME }}
-                      docker run -p 8087:3000/tcp -e APP_STORE_APP_ID='${{ env.APP_STORE_APP_ID }}' -e PLAY_STORE_PACKAGE_NAME='${{ env.PLAY_STORE_PACKAGE_NAME }}' -ti -d --restart unless-stopped --name ${{ env.CONTAINER_NAME }} ghcr.io/${{ github.repository }}:${{ env.TAG }}
+                      docker run -p 8087:3000/tcp -v /srv/app-link/apps.json:/app/apps.json:ro -ti -d --restart unless-stopped --name ${{ env.CONTAINER_NAME }} ghcr.io/${{ github.repository }}:${{ env.TAG }}
 
             - name: Generate summary
               id: generate-summary

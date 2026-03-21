@@ -1,0 +1,12 @@
+[
+  {
+    "domains": ["link.myapp.com", "myapp.link"],
+    "ios": { "appId": "123456789" },
+    "android": { "packageName": "com.example.myapp" }
+  },
+  {
+    "domains": ["download.otherapp.io"],
+    "ios": { "url": "https://apps.apple.com/app/id987654321" },
+    "android": { "url": "https://play.google.com/store/apps/details?id=io.otherapp" }
+  }
+]

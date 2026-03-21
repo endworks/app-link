@@ -2,32 +2,11 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const APP_STORE_APP_ID = process.env.APP_STORE_APP_ID;
-const APP_STORE_URL = process.env.APP_STORE_URL;
-const PLAY_STORE_PACKAGE_NAME = process.env.PLAY_STORE_PACKAGE_NAME;
-const PLAY_STORE_URL = process.env.PLAY_STORE_URL;
-
-let finalAppStoreUrl;
-if (APP_STORE_APP_ID) {
-  finalAppStoreUrl = `https://apps.apple.com/app/id${APP_STORE_APP_ID}`;
-} else if (APP_STORE_URL) {
-  finalAppStoreUrl = APP_STORE_URL;
-} else {
-  console.error(
-    "ERROR: Either APP_STORE_APP_ID or APP_STORE_URL environment variable is required"
-  );
-  process.exit(1);
-}
-
-let finalPlayStoreUrl;
-if (PLAY_STORE_PACKAGE_NAME) {
-  finalPlayStoreUrl = `https://play.google.com/store/apps/details?id=${PLAY_STORE_PACKAGE_NAME}`;
-} else if (PLAY_STORE_URL) {
-  finalPlayStoreUrl = PLAY_STORE_URL;
-} else {
-  console.error(
-    "ERROR: Either PLAY_STORE_PACKAGE_NAME or PLAY_STORE_URL environment variable is required"
-  );
+let apps;
+try {
+  apps = require("./apps.json");
+} catch {
+  console.error("ERROR: apps.json not found. Copy apps.example.json to apps.json and fill in your app details.");
   process.exit(1);
 }
 
@@ -40,20 +19,31 @@ const isIOSDevice = (userAgent) => {
 
 const isMacOSDevice = (userAgent) => {
   const ua = normalizeUserAgent(userAgent);
-  const isiOS = isIOSDevice(userAgent);
-  return !isiOS && (ua.includes("macintosh") || ua.includes("mac os x"));
+  return !isIOSDevice(userAgent) && (ua.includes("macintosh") || ua.includes("mac os x"));
 };
 
+function resolveUrls(appEntry) {
+  const iosUrl = appEntry.ios.url ?? `https://apps.apple.com/app/id${appEntry.ios.appId}`;
+  const androidUrl = appEntry.android.url ?? `https://play.google.com/store/apps/details?id=${appEntry.android.packageName}`;
+  return { iosUrl, androidUrl };
+}
+
 app.get("/", (req, res) => {
+  const appEntry = apps.find((a) => a.domains.includes(req.hostname));
+  if (!appEntry) {
+    return res.status(404).json({ error: `No app configured for domain: ${req.hostname}` });
+  }
+
   const userAgent = req.headers["user-agent"] || "";
   const isIOS = isIOSDevice(userAgent);
   const isMacOS = isMacOSDevice(userAgent);
-
   const redirectToAppStore = isIOS || isMacOS;
-  const redirectUrl = redirectToAppStore ? finalAppStoreUrl : finalPlayStoreUrl;
+
+  const { iosUrl, androidUrl } = resolveUrls(appEntry);
+  const redirectUrl = redirectToAppStore ? iosUrl : androidUrl;
 
   console.log(
-    `Device: ${redirectToAppStore ? "App Store" : "Play Store"}, ` +
+    `Domain: ${req.hostname}, Device: ${redirectToAppStore ? "App Store" : "Play Store"}, ` +
       `macOS: ${isMacOS}, User-Agent: ${userAgent.substring(0, 50)}...`
   );
   res.redirect(301, redirectUrl);
@@ -64,12 +54,18 @@ app.get("/health", (_, res) => {
 });
 
 app.get("/detect", (req, res) => {
+  const appEntry = apps.find((a) => a.domains.includes(req.hostname));
+  if (!appEntry) {
+    return res.status(404).json({ error: `No app configured for domain: ${req.hostname}` });
+  }
+
   const userAgent = req.headers["user-agent"] || "";
   const isIOS = isIOSDevice(userAgent);
   const isMacOS = isMacOSDevice(userAgent);
   const redirectToAppStore = isIOS || isMacOS;
 
   res.json({
+    domain: req.hostname,
     isIOS,
     isMacOS,
     userAgent,
@@ -79,7 +75,5 @@ app.get("/detect", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Visit http://localhost:${PORT} to test`);
-  console.log(`App Store URL: ${finalAppStoreUrl}`);
-  console.log(`Play Store URL: ${finalPlayStoreUrl}`);
+  console.log(`Configured domains: ${apps.map((a) => a.domain).join(", ")}`);
 });
