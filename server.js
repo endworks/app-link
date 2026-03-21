@@ -6,7 +6,9 @@ let apps;
 try {
   apps = require("./apps.json");
 } catch {
-  console.error("ERROR: apps.json not found. Copy apps.example.json to apps.json and fill in your app details.");
+  console.error(
+    "ERROR: apps.json not found. Copy apps.example.json to apps.json and fill in your app details.",
+  );
   process.exit(1);
 }
 
@@ -19,19 +21,27 @@ const isIOSDevice = (userAgent) => {
 
 const isMacOSDevice = (userAgent) => {
   const ua = normalizeUserAgent(userAgent);
-  return !isIOSDevice(userAgent) && (ua.includes("macintosh") || ua.includes("mac os x"));
+  return (
+    !isIOSDevice(userAgent) &&
+    (ua.includes("macintosh") || ua.includes("mac os x"))
+  );
 };
 
 function resolveUrls(appEntry) {
-  const iosUrl = appEntry.ios.url ?? `https://apps.apple.com/app/id${appEntry.ios.appId}`;
-  const androidUrl = appEntry.android.url ?? `https://play.google.com/store/apps/details?id=${appEntry.android.packageName}`;
+  const iosUrl =
+    appEntry.ios.url ?? `https://apps.apple.com/app/id${appEntry.ios.appId}`;
+  const androidUrl =
+    appEntry.android.url ??
+    `https://play.google.com/store/apps/details?id=${appEntry.android.packageName}`;
   return { iosUrl, androidUrl };
 }
 
 app.get("/", (req, res) => {
   const appEntry = apps.find((a) => a.domains.includes(req.hostname));
   if (!appEntry) {
-    return res.status(404).json({ error: `No app configured for domain: ${req.hostname}` });
+    return res
+      .status(404)
+      .json({ error: `No app configured for domain: ${req.hostname}` });
   }
 
   const userAgent = req.headers["user-agent"] || "";
@@ -44,7 +54,7 @@ app.get("/", (req, res) => {
 
   console.log(
     `Domain: ${req.hostname}, Device: ${redirectToAppStore ? "App Store" : "Play Store"}, ` +
-      `macOS: ${isMacOS}, User-Agent: ${userAgent.substring(0, 50)}...`
+      `macOS: ${isMacOS}, User-Agent: ${userAgent.substring(0, 50)}...`,
   );
   res.redirect(301, redirectUrl);
 });
@@ -56,7 +66,9 @@ app.get("/health", (_, res) => {
 app.get("/detect", (req, res) => {
   const appEntry = apps.find((a) => a.domains.includes(req.hostname));
   if (!appEntry) {
-    return res.status(404).json({ error: `No app configured for domain: ${req.hostname}` });
+    return res
+      .status(404)
+      .json({ error: `No app configured for domain: ${req.hostname}` });
   }
 
   const userAgent = req.headers["user-agent"] || "";
@@ -75,5 +87,7 @@ app.get("/detect", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Configured domains: ${apps.map((a) => a.domain).join(", ")}`);
+  console.log(
+    `Configured domains: ${apps.flatMap((a) => a.domains).join(", ")}`,
+  );
 });
